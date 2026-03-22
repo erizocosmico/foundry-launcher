@@ -1,0 +1,18 @@
+{
+  "foundryUrl": "http://localhost:30000",
+  "foundryDataPath": "/path/to/foundry-data",
+  "adminPassword": "your-foundry-admin-password",
+  "port": 3001,
+  "pollIntervalMinutes": 5,
+  "idleTimeoutMinutes": 30,
+  "worlds": {
+    "my-campaign": {
+      "name": "My Custom Campaign Name",
+      "password": "players-secret"
+    },
+    "one-shot": {
+      "name": "One Shot Dungeon",
+      "password": "anotherpassword"
+    }
+  }
+}

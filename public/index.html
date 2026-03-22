@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/launch/">
+  <title>Foundry Launcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Signika:wght@400;600;700&family=Cinzel:wght@700;900&display=swap">
+  <link rel="stylesheet" href="launcher.css">
+</head>
+
+<body>
+
+  <header>
+    <h1>Foundry Launcher</h1>
+  </header>
+
+  <div class="panel">
+    <div class="status-banner">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Checking…</span>
+    </div>
+    <div class="section-heading">Game Worlds</div>
+    <div class="grid" id="worlds">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title"></span>
+        <button class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label for="modal-pw">Password</label>
+        <input type="password" id="modal-pw" placeholder="Enter world password…">
+        <div class="modal-msg" id="modal-msg"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-launch-btn">Launch World</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="launcher.js"></script>
+</body>
+
+</html>
