@@ -91,17 +91,43 @@ app.post('/api/launch', async (req, res) => {
   }
 
   if (status.active) {
-    return res.status(409).json({ error: 'A world is already active' });
+    if (status.world === worldId) return res.json({ ok: true });
+    if (status.users !== 0) {
+      return res.status(409).json({ error: 'Another world is active with users connected' });
+    }
   }
 
+  if (launching) return res.status(409).json({ error: 'A launch is already in progress' });
+  launching = true;
   try {
+    if (status.active) {
+      console.log(`[launch] Switching from ${status.world} to ${worldId}`);
+      await foundry.shutdownWorld();
+      await waitForInactive();
+    }
     await foundry.launchWorld(worldId);
+    idleCount = 0;
     res.json({ ok: true });
   } catch (e) {
     const detail = e.response?.data?.error || e.message;
     res.status(500).json({ error: `Failed to launch: ${detail}` });
+  } finally {
+    launching = false;
   }
 });
+
+let launching = false;
+
+async function waitForInactive(timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 1000));
+    try {
+      if (!(await foundry.getStatus()).active) return;
+    } catch { /* Foundry may briefly refuse connections while shutting down */ }
+  }
+  throw new Error('previous world did not shut down in time');
+}
 
 app.get('/api/world-bg/:worldId', (req, res) => {
   if (!config.worlds?.[req.params.worldId]) return res.status(404).end();

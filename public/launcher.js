@@ -34,19 +34,19 @@ function renderStatus() {
 }
 
 function openModal(worldId, worldName) {
-  if (currentStatus?.active) return;
+  const switching = !!currentStatus?.active;
+  if (switching && (currentStatus.world === worldId || currentStatus.users !== 0)) return;
   modalWorldId = worldId;
   document.getElementById('modal-title').textContent = worldName;
   document.getElementById('modal-pw').value = '';
   document.getElementById('modal-msg').classList.remove('visible');
   document.getElementById('modal-launch-btn').disabled = false;
-  document.getElementById('modal-launch-btn').textContent = 'Launch World';
+  document.getElementById('modal-launch-btn').textContent = switching ? 'Switch World' : 'Launch World';
   document.getElementById('modal-backdrop').classList.add('open');
   setTimeout(() => document.getElementById('modal-pw').focus(), 50);
 }
 
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modal-backdrop')) return;
+function closeModal() {
   document.getElementById('modal-backdrop').classList.remove('open');
   modalWorldId = null;
 }
@@ -133,7 +133,9 @@ function fmtDate(iso) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+  document.getElementById('modal-backdrop').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
   document.getElementById('modal-launch-btn').addEventListener('click', submitModal);
   document.getElementById('modal-pw').addEventListener('keydown', e => {
     if (e.key === 'Enter') submitModal();

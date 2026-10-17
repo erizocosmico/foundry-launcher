@@ -19,13 +19,17 @@ export default class FoundryClient {
         return { Origin: this.url, Referer: `${this.url}${path}` };
     }
 
-    async getAdminCookie() {
-        const pre = await axios.get(`${this.url}/auth`, {
+    async getSessionCookie() {
+        const res = await axios.get(`${this.url}/auth`, {
             timeout: 10_000,
             maxRedirects: 0,
             validateStatus: s => s < 400,
         });
-        const initial = (pre.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+        return (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+    }
+
+    async getAdminCookie() {
+        const initial = await this.getSessionCookie();
 
         const params = new URLSearchParams({ action: 'adminAuth', adminPassword: this.config.adminPassword });
         const res = await axios.post(`${this.url}/auth`, params.toString(), {
@@ -52,11 +56,23 @@ export default class FoundryClient {
         return res.data;
     }
 
+    // While a world is active, the /auth admin session isn't honoured; the password must be in the shutdown body
     async shutdownWorld() {
-        const cookie = await this.getAdminCookie();
-        await axios.post(`${this.url}/join`, {
-            action: 'shutdown',
-        }, { headers: { Cookie: cookie, ...this.originHeaders('/join') }, timeout: 15_000 });
+        const cookie = await this.getSessionCookie();
+        const params = new URLSearchParams({ action: 'worldShutdown', adminPassword: this.config.adminPassword });
+        const res = await axios.post(`${this.url}/setup`, params.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                ...(cookie && { Cookie: cookie }),
+                ...this.originHeaders('/setup'),
+            },
+            timeout: 15_000,
+            maxRedirects: 0,
+            validateStatus: s => s < 400,
+        });
+        if (/\/join$/.test(res.headers.location || '')) {
+            throw new Error('Foundry rejected the shutdown — check adminPassword in config.json');
+        }
     }
 
     getWorldBackground(worldId) {
