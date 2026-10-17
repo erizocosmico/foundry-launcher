@@ -14,17 +14,33 @@ export default class FoundryClient {
         return res.data;
     }
 
+    // v14 rejects state-changing requests without a same-origin Origin/Referer (400 "could not be processed")
+    originHeaders(path) {
+        return { Origin: this.url, Referer: `${this.url}${path}` };
+    }
+
     async getAdminCookie() {
-        const params = new URLSearchParams({ action: 'adminAuth', adminPassword: this.config.adminPassword });
-        const res = await axios.post(`${this.url}/auth`, params.toString(), {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        const pre = await axios.get(`${this.url}/auth`, {
             timeout: 10_000,
             maxRedirects: 0,
             validateStatus: s => s < 400,
         });
-        const cookies = res.headers['set-cookie'];
-        if (!cookies?.length) throw new Error('No session cookie returned — check adminPassword in config.json');
-        return cookies.map(c => c.split(';')[0]).join('; ');
+        const initial = (pre.headers['set-cookie'] || []).map(c => c.split(';')[0]).join('; ');
+
+        const params = new URLSearchParams({ action: 'adminAuth', adminPassword: this.config.adminPassword });
+        const res = await axios.post(`${this.url}/auth`, params.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                ...(initial && { Cookie: initial }),
+                ...this.originHeaders('/auth'),
+            },
+            timeout: 10_000,
+            maxRedirects: 0,
+            validateStatus: s => s < 400,
+        });
+        const cookies = res.headers['set-cookie']?.map(c => c.split(';')[0]).join('; ') || initial;
+        if (!cookies) throw new Error('No session cookie returned — check adminPassword in config.json');
+        return cookies;
     }
 
     async launchWorld(worldId) {
@@ -32,7 +48,7 @@ export default class FoundryClient {
         const res = await axios.post(`${this.url}/setup`, {
             action: 'launchWorld',
             world: worldId,
-        }, { headers: { Cookie: cookie }, timeout: 30_000 });
+        }, { headers: { Cookie: cookie, ...this.originHeaders('/setup') }, timeout: 30_000 });
         return res.data;
     }
 
@@ -40,7 +56,7 @@ export default class FoundryClient {
         const cookie = await this.getAdminCookie();
         await axios.post(`${this.url}/join`, {
             action: 'shutdown',
-        }, { headers: { Cookie: cookie }, timeout: 15_000 });
+        }, { headers: { Cookie: cookie, ...this.originHeaders('/join') }, timeout: 15_000 });
     }
 
     getWorldBackground(worldId) {
